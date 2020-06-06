@@ -1,3 +1,12 @@
+#include "pid.h"
+#include "config.h"
+static int is_init = 0;
+static pid_t line_pid;
+/**************
+ * github.com/Interpause
+ * Left is negative, Right is positive
+ **************/
+
 #define CsBot_AI_H//DO NOT delete this line
 #ifndef CSBOT_REAL
 #include <windows.h>
@@ -96,14 +105,6 @@ DLL_EXPORT void GetCommand(int *AI_OUT)
     AI_OUT[2] = LED_1;
 }
 
-#include "pid.h"
-#include "config.h"
-static int is_init = false;
-static pid_t line_pid;
-/**************
- * github.com/Interpause
- * Left is negative, Right is positive
- **************/
 void init()
 {
 	if(is_init) return;
@@ -112,13 +113,34 @@ void init()
 };
 
 float line_value()
+{   
+    int isFlipped = true;
+    //IR values 0:black, 1:white, bool. There was no better way to exploit between-ness
+    int IR[6] = {IR_L3,IR_L2,IR_L1,IR_R1,IR_R2,IR_R3};
+    if(isFlipped) for(int i=0;i<6;i++) IR[i] = !IR[i];
+    if(memcmp((int[6]){1,0,0,0,0,0},IR,sizeof(int[6]))==0) return K_IR[4];
+    if(memcmp((int[6]){1,1,0,0,0,0},IR,sizeof(int[6]))==0) return K_IR[3];
+    if(memcmp((int[6]){0,1,0,0,0,0},IR,sizeof(int[6]))==0) return K_IR[2];
+    if(memcmp((int[6]){0,1,1,0,0,0},IR,sizeof(int[6]))==0) return K_IR[1];
+    if(memcmp((int[6]){0,0,1,0,0,0},IR,sizeof(int[6]))==0) return K_IR[0];
+    if(memcmp((int[6]){0,0,1,1,0,0},IR,sizeof(int[6]))==0) return 0.;
+    if(memcmp((int[6]){0,0,0,1,0,0},IR,sizeof(int[6]))==0) return -K_IR[0];
+    if(memcmp((int[6]){0,0,0,1,1,0},IR,sizeof(int[6]))==0) return -K_IR[1];
+    if(memcmp((int[6]){0,0,0,0,1,0},IR,sizeof(int[6]))==0) return -K_IR[2];
+    if(memcmp((int[6]){0,0,0,0,1,1},IR,sizeof(int[6]))==0) return -K_IR[3];
+    if(memcmp((int[6]){0,0,0,0,0,1},IR,sizeof(int[6]))==0) return -K_IR[4];
+    return 0.;
+};
+
+/*
+float line_value()
 {
-	//IR values 0:black, 1:white, bool. This implementation should? be fairly color independent
-	float a = K_IR3*(IR_R3-IR_L3);
+    float a = K_IR3*(IR_R3-IR_L3);
 	float b = K_IR2*(IR_R2-IR_L2);
 	float c = K_IR1*(IR_R1-IR_L1);
 	return abs(a) > abs(b)? (abs(a) > abs(c)? a: c): (abs(b) > abs(c)? b: c);
 };
+*/
 
 void setSteering(float x,float speed)
 {
@@ -135,7 +157,7 @@ void loop(unsigned short dt)
 	init();
     float value = line_value();
     line_pid = pid_update(line_pid,value,dt);
-    printf("PID: IN=%f, OUT=%f, PE=%f, PI=%f\n",value,line_pid.v,line_pid.ep,line_pid.ip);
+    printf("PID: OUT=%f, De=%f, I=%f\n",line_pid.v,line_pid.ep+value,line_pid.ip);
 	setSteering(line_pid.v,LINE_SPEED_NORMAL-abs(K_SLOWDOWN)*line_pid.ep);
     LED_1=0;
 };

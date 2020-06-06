@@ -1,1 +1,0 @@
-gcc -shared -o linetrack.dll main.c pid.c

@@ -6,7 +6,8 @@
         {
             "label": "build",
             "type": "shell",
-            "command": "gcc -shared -o linetrack.dll main.c pid.c"
+            "command": "gcc -shared -Ofast -o linetrack.dll main.c pid.c",
+            "problemMatcher": []
         }
     ]
 }
