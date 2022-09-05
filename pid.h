@@ -16,4 +16,6 @@ typedef struct
 pid_t pid_init(float tgt_x,float p,float i,float d);
 
 pid_t pid_update(pid_t pid,float cur_x,float dt);
+
+void pid_print(pid_t pid);
 #endif
